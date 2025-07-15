@@ -4,6 +4,7 @@ import dayjs from "dayjs";
 import duration from "dayjs/plugin/duration";
 import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
 import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
+import * as XLSX from "xlsx";
 
 dayjs.extend(duration);
 dayjs.extend(isSameOrAfter);
@@ -12,6 +13,8 @@ dayjs.extend(isSameOrBefore);
 export default function AttendanceTable() {
   const { getAllAttendance } = useAttendance();
   const [attendanceData, setAttendanceData] = useState([]);
+  const [selectedDate, setSelectedDate] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const prepareAttendanceData = (rawData) => {
     const grouped = {};
@@ -55,11 +58,7 @@ export default function AttendanceTable() {
         if (clockIn && clockOut) {
           const inTime = new Date(`${item.date}T${clockIn}`);
           const outTime = new Date(`${item.date}T${clockOut}`);
-          if (
-            !isNaN(inTime) &&
-            !isNaN(outTime) &&
-            outTime.getTime() > inTime.getTime()
-          ) {
+          if (!isNaN(inTime) && !isNaN(outTime) && outTime > inTime) {
             totalMs += outTime - inTime;
           }
         }
@@ -99,6 +98,7 @@ export default function AttendanceTable() {
         lastClockOut,
         totalHours,
         status,
+        present: totalHours >= "06:00:00" ? "Present" : "Absent",
       };
     });
   };
@@ -117,17 +117,66 @@ export default function AttendanceTable() {
     fetchData();
   }, [getAllAttendance]);
 
+  const filteredData = attendanceData.filter((item) => {
+    const matchesDate = selectedDate ? item.date === selectedDate : true;
+    const matchesSearch = searchQuery
+      ? item.employeeId?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.firstName?.toLowerCase().includes(searchQuery.toLowerCase())
+      : true;
+    return matchesDate && matchesSearch;
+  });
+
+  const exportToExcel = () => {
+    if (filteredData.length === 0) {
+      alert("No data found for selected date!");
+      return;
+    }
+
+    const sheetData = filteredData.map((item) => ({
+      Date: item.date,
+      EmployeeID: item.employeeId,
+      Name: item.firstName,
+      Shift: item.shift,
+      Status: item.status,
+      ClockIn: item.firstClockIn || "--:--:--",
+      ClockOut: item.lastClockOut || "--:--:--",
+      TotalHours: item.totalHours,
+      Attendance: item.present,
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(sheetData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Attendance");
+
+    const fileName = `Attendance_${selectedDate || "All"}.xlsx`;
+    XLSX.writeFile(workbook, fileName);
+  };
+
   return (
     <div className="container-fluid bg-gray-100 px-0">
       <div className="bg-white p-3 rounded">
         <div className="flex justify-between items-center mb-4">
-          <h1 className="text-xl">Daily Attendance Report</h1>
-          <div className="relative">
+          <h1 className="text-xl font-semibold">Daily Attendance Report</h1>
+          <div className="flex gap-2">
             <input
-              type="text"
-              placeholder="Search..."
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
               className="border px-3 py-1 rounded text-sm"
             />
+            <input
+              type="text"
+              placeholder="Search by name or ID..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="border px-3 py-1 rounded text-sm"
+            />
+            <button
+              onClick={exportToExcel}
+              className="bg-green-500 text-white text-sm px-3 py-1 rounded hover:bg-green-600"
+            >
+              Export Excel
+            </button>
           </div>
         </div>
 
@@ -141,10 +190,11 @@ export default function AttendanceTable() {
               <th className="border px-3 py-2 text-left">Punch In</th>
               <th className="border px-3 py-2 text-left">Punch Out</th>
               <th className="border px-3 py-2 text-left">Total Active Hours</th>
+              <th className="border px-3 py-2 text-left">Attendance</th>
             </tr>
           </thead>
           <tbody>
-            {attendanceData.map((item, i) => (
+            {filteredData.map((item, i) => (
               <tr key={i} className="hover:bg-gray-50">
                 <td className="border px-3 py-2">{item.date}</td>
                 <td className="border px-3 py-2">{item.employeeId}</td>
@@ -161,13 +211,16 @@ export default function AttendanceTable() {
                     </span>
                   </div>
                 </td>
-                <td className="border px-3 py-2">
-                  {item.firstClockIn || "--:--:--"}
-                </td>
-                <td className="border px-3 py-2">
-                  {item.lastClockOut || "--:--:--"}
-                </td>
+                <td className="border px-3 py-2">{item.firstClockIn || "--:--:--"}</td>
+                <td className="border px-3 py-2">{item.lastClockOut || "--:--:--"}</td>
                 <td className="border px-3 py-2">{item.totalHours}</td>
+                <td className="border px-3 py-2 font-semibold">
+                  {item.present === "Present" ? (
+                    <span className="text-green-600">Present</span>
+                  ) : (
+                    <span className="text-red-500">Absent</span>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>
