@@ -6,7 +6,7 @@ import { projects } from "../constant/data";
 import { updateDoc, doc, collection, addDoc, getDoc } from "firebase/firestore";
 import { db } from "../firebaseConfig";
 
-const AUTO_PUNCH_OUT_DELAY = 1 * 60 * 1000;
+const AUTO_PUNCH_OUT_DELAY = 10 * 60 * 1000;
 const ITEMS_PER_PAGE = 5;
 
 const ClockInDashboard = () => {
