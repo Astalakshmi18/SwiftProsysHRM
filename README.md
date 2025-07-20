@@ -1,12 +1,64 @@
-# React + Vite
+# React + Vite + Tailwind CSS App
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## Description
 
-Currently, two official plugins are available:
+A responsive and secure web application for managing employee attendance and production reports. Built with React, Vite, Tailwind CSS, and integrated with Firebase for backend services including authentication and data storage.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Features
 
-## Expanding the ESLint configuration
+- 🔐 Login/Signup system with Firebase Authentication
+- 📊 Attendance tracking system (punch in/out)
+- 🧑‍💼 Admin dashboard to view and manage attendance reports
+- ⚙️ Firebase Firestore integration
+- 📈 Production report pages
+- 🎨 Responsive UI using Tailwind CSS
+- 📂 Modular file structure with reusable components/hooks
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Installation
+
+```bash
+git clone <your-repo-url>
+cd your-project-folder
+npm install
+```
+
+## Usage
+
+```bash
+npm run dev
+```
+
+Visit: `http://localhost:5173`
+
+## Build for Production
+
+```bash
+npm run build
+```
+
+Output will be in the `/dist` folder.
+
+## Deployment
+
+- GitHub Pages: Push the `/dist` content to a `gh-pages` branch.
+- Netlify: Connect your repo and configure build as `npm run build` and publish directory as `dist`.
+- GoDaddy: Upload `dist` content via FTP or file manager.
+
+## Folder Highlights
+
+| Folder            | Purpose                                    |
+| ----------------- | ------------------------------------------ |
+| `src/components/` | Reusable UI components                     |
+| `src/hooks/`      | Custom React hooks (Firebase, Auth, etc.)  |
+| `src/pages/`      | Main page logic for attendance, auth, etc. |
+| `src/screens/`    | User and admin dashboards                  |
+| `src/constant/`   | Static data and constants                  |
+| `public/`         | Static files and redirects                 |
+
+## Authors
+
+Developed by Swift ProSys Pvt. Ltd.
+
+## License
+
+MIT License
