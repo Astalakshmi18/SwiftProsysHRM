@@ -6,11 +6,13 @@ import { db } from "../../firebaseConfig";
 
 // Data for dropdowns (unchanged)
 const departments = [
-  { key: 'hr', label: 'Human Resources' },
-  { key: 'finance', label: 'Finance' },
-  { key: 'it', label: 'IT' },
-  { key: 'operations', label: 'Operations' },
-  { key: 'marketing', label: 'Marketing' }
+  { key: "Management", label: "Management" },
+  { key: "Project_Management", label: "Project Management" },
+  { key: "HR_and_Admin", label: "HR/Admin" },
+  { key: "IT_and_Systems", label: "IT & Systems" },
+  { key: "Vendor_Management", label: "Vendor Manager" },
+  { key: "Quality_Management", label: "Quality Management" },
+  { key: "Finance", label: "Finance" },
 ];
 
 const branches = [
@@ -51,32 +53,47 @@ const bloodGroups = [
   { key: 'O-', label: 'O-' }
 ];
 
-const departmentPositionMap = {
-  hr: [
-    { key: 'hr_manager', label: 'HR Manager' },
-    { key: 'hr_executive', label: 'HR Executive' },
-    { key: 'recruiter', label: 'Recruiter' }
+export const departmentPositionMap = {
+  Management: [
+    { key: "COO", label: "Chief Operating Officer" }
   ],
-  finance: [
-    { key: 'finance_manager', label: 'Finance Manager' },
-    { key: 'accountant', label: 'Accountant' },
-    { key: 'auditor', label: 'Auditor' }
+
+  Project_Management: [
+    { key: "General_Manager", label: "General Manager" },
+    { key: "Project_management", label: "Project Manager" },
+    { key: "Asst_Project_management", label: "Assistant PM" },
+    { key: "Final_Checker", label: "Project Leader" },
+    { key: "Production", label: "Data Entry" },
+    { key: "Quality", label: "Quality Control" },
+    { key: "Quality_PR", label: "Proof Reader" },
+    { key: "Random_Quality", label: "Random QA" }
+
   ],
-  it: [
-    { key: 'cto', label: 'CTO' },
-    { key: 'developer', label: 'Developer' },
-    { key: 'tester', label: 'Tester' },
-    { key: 'devops', label: 'DevOps Engineer' }
+  HR_and_Admin: [
+    { key: "HR", label: "HR Manager" },
+    { key: "AHR", label: "HR Executive" },
+    { key: "AD", label: "Admin Assistant" },
+    { key: "Basic_training", label: "Trainer" }
   ],
-  operations: [
-    { key: 'operations_manager', label: 'Operations Manager' },
-    { key: 'team_lead', label: 'Team Lead' },
-    { key: 'executive', label: 'Operations Executive' }
+  IT_and_Systems: [
+    { key: "Manager", label: "IT Manager" },
+    { key: "Asst_Manager", label: "IT Assistant Manager" },
+    { key: "System_Admin", label: "System Admin" },
+    { key: "Software_team", label: "Software Engineer" },
+    { key: "Support", label: "IT Support" }
   ],
-  marketing: [
-    { key: 'marketing_manager', label: 'Marketing Manager' },
-    { key: 'seo_specialist', label: 'SEO Specialist' },
-    { key: 'content_writer', label: 'Content Writer' }
+  Quality_Management: [
+    { key: "Quality_Manager", label: "Quality Manager" },
+    { key: "Analyst", label: "Quality Analyst" }
+  ],
+  Finance: [
+    { key: "Finance_management", label: "Finance Manager" },
+    { key: "Account", label: "Accountant" },
+    { key: "Billing", label: "Billing Executive" }
+  ],
+  Vendor_Management: [
+    { key: "Vendor_management", label: "Vendor Manager" },
+    { key: "Asst_Vendor", label: "Vendor Assistant" }
   ]
 };
 
