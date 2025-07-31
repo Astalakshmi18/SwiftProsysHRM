@@ -11,7 +11,7 @@ import EmployeeList from './pages/attendance/empList';
 import AdminScreen from './screens/adminScreen';
 import AttendanceReport from './pages/attendance/attendance_report';
 import AdminDashboard from './pages/attendance/Admin_dashboard';
-import editEmployeeModal from './pages/attendance/editEmployeeModal';
+import EditEmployeeModal from './pages/attendance/editEmployeeModal';
 
 function App() {
   return (
