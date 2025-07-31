@@ -15,6 +15,10 @@ export default function AttendanceTable() {
   const [attendanceData, setAttendanceData] = useState([]);
   const [selectedDate, setSelectedDate] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [editingRemarks, setEditingRemarks] = useState(null);
+  const [remarksText, setRemarksText] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [recordsPerPage] = useState(10);
 
   const prepareAttendanceData = (rawData) => {
     const grouped = {};
@@ -32,6 +36,8 @@ export default function AttendanceTable() {
           date,
           shift: item.shift,
           tracker: [],
+          remarks: item.remarks || '',
+          remarksEditedAt: item.remarksEditedAt || null
         };
       }
 
@@ -50,6 +56,7 @@ export default function AttendanceTable() {
       let totalMs = 0;
       let firstClockIn = null;
       let lastClockOut = null;
+      let totalDurationMs = 0;
 
       sorted.forEach(({ clockIn, clockOut }) => {
         if (clockIn && !firstClockIn) firstClockIn = clockIn;
@@ -64,10 +71,24 @@ export default function AttendanceTable() {
         }
       });
 
+      if (firstClockIn && lastClockOut) {
+        const start = new Date(`${item.date}T${firstClockIn}`);
+        const end = new Date(`${item.date}T${lastClockOut}`);
+        if (!isNaN(start) && !isNaN(end)) {
+          totalDurationMs = end - start;
+        }
+      }
+
       const totalHours = totalMs
         ? `${String(Math.floor(totalMs / 3600000)).padStart(2, "0")}:${String(
             Math.floor((totalMs % 3600000) / 60000)
           ).padStart(2, "0")}:${String(Math.floor((totalMs % 60000) / 1000)).padStart(2, "0")}`
+        : "--:--:--";
+
+      const totalDuration = totalDurationMs
+        ? `${String(Math.floor(totalDurationMs / 3600000)).padStart(2, "0")}:${String(
+            Math.floor((totalDurationMs % 3600000) / 60000)
+          ).padStart(2, "0")}:${String(Math.floor((totalDurationMs % 60000) / 1000)).padStart(2, "0")}`
         : "--:--:--";
 
       const shift = item.shift?.toLowerCase();
@@ -97,6 +118,7 @@ export default function AttendanceTable() {
         firstClockIn,
         lastClockOut,
         totalHours,
+        totalDuration,
         status,
         present: totalHours >= "06:00:00" ? "Present" : "Absent",
       };
@@ -126,6 +148,14 @@ export default function AttendanceTable() {
     return matchesDate && matchesSearch;
   });
 
+  // Pagination logic
+  const indexOfLastRecord = currentPage * recordsPerPage;
+  const indexOfFirstRecord = indexOfLastRecord - recordsPerPage;
+  const currentRecords = filteredData.slice(indexOfFirstRecord, indexOfLastRecord);
+  const totalPages = Math.ceil(filteredData.length / recordsPerPage);
+
+  const paginate = (pageNumber) => setCurrentPage(pageNumber);
+
   const exportToExcel = () => {
     if (filteredData.length === 0) {
       alert("No data found for selected date!");
@@ -140,8 +170,11 @@ export default function AttendanceTable() {
       Status: item.status,
       ClockIn: item.firstClockIn || "--:--:--",
       ClockOut: item.lastClockOut || "--:--:--",
-      TotalHours: item.totalHours,
+      TotalActiveHours: item.totalHours,
+      TotalDuration: item.totalDuration,
       Attendance: item.present,
+      Remarks: item.remarks || '',
+      RemarksEditedAt: item.remarksEditedAt || ''
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(sheetData);
@@ -152,79 +185,216 @@ export default function AttendanceTable() {
     XLSX.writeFile(workbook, fileName);
   };
 
+  const startEditRemarks = (index, remarks) => {
+    setEditingRemarks(index);
+    setRemarksText(remarks || '');
+  };
+
+  const saveRemarks = (index) => {
+    const updatedData = [...attendanceData];
+    updatedData[index] = {
+      ...updatedData[index],
+      remarks: remarksText,
+      remarksEditedAt: new Date().toISOString()
+    };
+    setAttendanceData(updatedData);
+    setEditingRemarks(null);
+    setRemarksText('');
+  };
+
+  const cancelEditRemarks = () => {
+    setEditingRemarks(null);
+    setRemarksText('');
+  };
+
   return (
     <div className="container-fluid bg-gray-100 px-0">
       <div className="bg-white p-3 rounded">
-        <div className="flex justify-between items-center mb-4">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-3">
           <h1 className="text-xl font-semibold">Daily Attendance Report</h1>
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
             <input
               type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
-              className="border px-3 py-1 rounded text-sm"
+              className="border px-3 py-1 rounded text-sm w-full sm:w-auto"
             />
             <input
               type="text"
               placeholder="Search by name or ID..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="border px-3 py-1 rounded text-sm"
+              className="border px-3 py-1 rounded text-sm w-full sm:w-auto"
             />
             <button
               onClick={exportToExcel}
-              className="bg-green-500 text-white text-sm px-3 py-1 rounded hover:bg-green-600"
+              className="bg-green-500 text-white text-sm px-3 py-1 rounded hover:bg-green-600 w-full sm:w-auto"
             >
               Export Excel
             </button>
           </div>
         </div>
 
-        <table className="w-full table-auto text-sm border border-collapse">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="border px-3 py-2 text-left">Date</th>
-              <th className="border px-3 py-2 text-left">Employee ID</th>
-              <th className="border px-3 py-2 text-left">Name</th>
-              <th className="border px-3 py-2 text-left">Shift</th>
-              <th className="border px-3 py-2 text-left">Punch In</th>
-              <th className="border px-3 py-2 text-left">Punch Out</th>
-              <th className="border px-3 py-2 text-left">Total Active Hours</th>
-              <th className="border px-3 py-2 text-left">Attendance</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredData.map((item, i) => (
-              <tr key={i} className="hover:bg-gray-50">
-                <td className="border px-3 py-2">{item.date}</td>
-                <td className="border px-3 py-2">{item.employeeId}</td>
-                <td className="border px-3 py-2">{item.firstName}</td>
-                <td className="border px-3 py-2">
-                  <div className="flex justify-between items-center">
-                    <span>{item.shift}</span>
-                    <span
-                      className={`inline-block px-2 py-0.5 rounded-full text-white text-xs ${
-                        item.status === "Late" ? "bg-red-500" : "bg-blue-500"
-                      }`}
-                    >
-                      {item.status}
-                    </span>
-                  </div>
-                </td>
-                <td className="border px-3 py-2">{item.firstClockIn || "--:--:--"}</td>
-                <td className="border px-3 py-2">{item.lastClockOut || "--:--:--"}</td>
-                <td className="border px-3 py-2">{item.totalHours}</td>
-                <td className="border px-3 py-2 font-semibold">
-                  {item.present === "Present" ? (
-                    <span className="text-green-600">Present</span>
-                  ) : (
-                    <span className="text-red-500">Absent</span>
-                  )}
-                </td>
+        <div className="overflow-x-auto">
+          <table className="w-full table-auto text-sm border border-collapse">
+            <thead className="bg-gray-100">
+              <tr>
+                <th className="border px-3 py-2 text-left whitespace-nowrap">Date</th>
+                <th className="border px-3 py-2 text-left whitespace-nowrap">Employee ID</th>
+                <th className="border px-3 py-2 text-left whitespace-nowrap">Name</th>
+                <th className="border px-3 py-2 text-left whitespace-nowrap">Shift</th>
+                <th className="border px-3 py-2 text-left whitespace-nowrap">Punch In</th>
+                <th className="border px-3 py-2 text-left whitespace-nowrap">Punch Out</th>
+                <th className="border px-3 py-2 text-left whitespace-nowrap">Total Active Hours</th>
+                <th className="border px-3 py-2 text-left whitespace-nowrap">Total Duration</th>
+                <th className="border px-3 py-2 text-left whitespace-nowrap">Attendance</th>
+                <th className="border px-3 py-2 text-left whitespace-nowrap">Remarks</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {currentRecords.map((item, i) => (
+                <tr key={i} className="hover:bg-gray-50">
+                  <td className="border px-3 py-2 whitespace-nowrap">{item.date}</td>
+                  <td className="border px-3 py-2 whitespace-nowrap">{item.employeeId}</td>
+                  <td className="border px-3 py-2 whitespace-nowrap">{item.firstName}</td>
+                  <td className="border px-3 py-2 whitespace-nowrap">
+                    <div className="flex justify-between items-center">
+                      <span>{item.shift}</span>
+                      <span
+                        className={`inline-block px-2 py-0.5 rounded-full text-white text-xs ${
+                          item.status === "Late" ? "bg-red-500" : "bg-blue-500"
+                        }`}
+                      >
+                        {item.status}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="border px-3 py-2 whitespace-nowrap">{item.firstClockIn || "--:--:--"}</td>
+                  <td className="border px-3 py-2 whitespace-nowrap">{item.lastClockOut || "--:--:--"}</td>
+                  <td className="border px-3 py-2 whitespace-nowrap">{item.totalHours}</td>
+                  <td className="border px-3 py-2 whitespace-nowrap">{item.totalDuration}</td>
+                  <td className="border px-3 py-2 font-semibold whitespace-nowrap">
+                    {item.present === "Present" ? (
+                      <span className="text-green-600">Present</span>
+                    ) : (
+                      <span className="text-red-500">Absent</span>
+                    )}
+                  </td>
+                  <td className="border px-3 py-2">
+                    {editingRemarks === i ? (
+                      <div className="flex flex-col gap-1">
+                        <textarea
+                          value={remarksText}
+                          onChange={(e) => setRemarksText(e.target.value)}
+                          className="border p-1 text-xs"
+                          rows={2}
+                        />
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => saveRemarks(i)}
+                            className="bg-blue-500 text-white text-xs px-2 py-0.5 rounded"
+                          >
+                            Save
+                          </button>
+                          <button
+                            onClick={cancelEditRemarks}
+                            className="bg-gray-500 text-white text-xs px-2 py-0.5 rounded"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                        {item.remarksEditedAt && (
+                          <div className="text-xs text-gray-500 whitespace-nowrap">
+                            Last edited: {dayjs(item.remarksEditedAt).format('YYYY-MM-DD HH:mm')}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="flex flex-col">
+                        <div className="whitespace-normal">{item.remarks || '-'}</div>
+                        {item.remarksEditedAt && (
+                          <div className="text-xs text-gray-500 whitespace-nowrap">
+                            Edited: {dayjs(item.remarksEditedAt).format('YYYY-MM-DD HH:mm')}
+                          </div>
+                        )}
+                        <button
+                          onClick={() => startEditRemarks(i, item.remarks)}
+                          className="text-blue-500 text-xs mt-1 self-start"
+                        >
+                          Edit
+                        </button>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Pagination Controls */}
+        {filteredData.length > recordsPerPage && (
+          <div className="flex justify-between items-center mt-4">
+            <div className="text-sm text-gray-600">
+              Showing {indexOfFirstRecord + 1} to {Math.min(indexOfLastRecord, filteredData.length)} of {filteredData.length} entries
+            </div>
+            <div className="flex gap-1">
+              <button
+                onClick={() => paginate(1)}
+                disabled={currentPage === 1}
+                className={`px-3 py-1 rounded ${currentPage === 1 ? 'bg-gray-200 cursor-not-allowed' : 'bg-blue-500 text-white hover:bg-blue-600'}`}
+              >
+                First
+              </button>
+              <button
+                onClick={() => paginate(currentPage - 1)}
+                disabled={currentPage === 1}
+                className={`px-3 py-1 rounded ${currentPage === 1 ? 'bg-gray-200 cursor-not-allowed' : 'bg-blue-500 text-white hover:bg-blue-600'}`}
+              >
+                Previous
+              </button>
+              
+              {/* Page Numbers */}
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNumber;
+                if (totalPages <= 5) {
+                  pageNumber = i + 1;
+                } else if (currentPage <= 3) {
+                  pageNumber = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  pageNumber = totalPages - 4 + i;
+                } else {
+                  pageNumber = currentPage - 2 + i;
+                }
+                
+                return (
+                  <button
+                    key={pageNumber}
+                    onClick={() => paginate(pageNumber)}
+                    className={`px-3 py-1 rounded ${currentPage === pageNumber ? 'bg-blue-600 text-white' : 'bg-blue-500 text-white hover:bg-blue-600'}`}
+                  >
+                    {pageNumber}
+                  </button>
+                );
+              })}
+
+              <button
+                onClick={() => paginate(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className={`px-3 py-1 rounded ${currentPage === totalPages ? 'bg-gray-200 cursor-not-allowed' : 'bg-blue-500 text-white hover:bg-blue-600'}`}
+              >
+                Next
+              </button>
+              <button
+                onClick={() => paginate(totalPages)}
+                disabled={currentPage === totalPages}
+                className={`px-3 py-1 rounded ${currentPage === totalPages ? 'bg-gray-200 cursor-not-allowed' : 'bg-blue-500 text-white hover:bg-blue-600'}`}
+              >
+                Last
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

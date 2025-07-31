@@ -11,6 +11,7 @@ import EmployeeList from './pages/attendance/empList';
 import AdminScreen from './screens/adminScreen';
 import AttendanceReport from './pages/attendance/attendance_report';
 import AdminDashboard from './pages/attendance/Admin_dashboard';
+import editEmployeeModal from './pages/attendance/editEmployeeModal';
 
 function App() {
   return (
@@ -33,6 +34,7 @@ function App() {
             <Route path="emplist" element={<EmployeeList />} />
             <Route path="addemployee" element={<AddEmployee />} />
             <Route path="attendancereport" element={<AttendanceReport />} />
+            <Route path="/admin/editempmodal/" element={<editEmployeeModal />} />
           </Route>
         </Route>
 

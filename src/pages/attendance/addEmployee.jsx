@@ -1,54 +1,169 @@
 import React, { useState } from 'react';
-import { departmentPositionMap, departments } from '../../constant/data';
-import { Link } from 'react-router-dom';
-// import { API_URL } from '../../constant/api';
+import { Link, useNavigate } from 'react-router-dom';
 import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
 import { collection, addDoc } from "firebase/firestore";
 import { db } from "../../firebaseConfig";
 
+// Data for dropdowns (unchanged)
+const departments = [
+  { key: 'hr', label: 'Human Resources' },
+  { key: 'finance', label: 'Finance' },
+  { key: 'it', label: 'IT' },
+  { key: 'operations', label: 'Operations' },
+  { key: 'marketing', label: 'Marketing' }
+];
+
+const branches = [
+  { key: 'TDM', label: 'Tindivanam' },
+  { key: 'Chennai', label: 'Chennai' },
+  { key: 'Kanchipuram', label: 'Kanchipuram' },
+  { key: 'Madurai', label: 'Madurai' }
+];
+
+const shifts = [
+  { key: 'morning', label: 'Morning (9AM-6PM)' },
+  { key: 'evening', label: 'Evening (2PM-11PM)' },
+  { key: 'night', label: 'Night (10PM-7AM)' }
+];
+
+const maritalStatuses = [
+  { key: 'single', label: 'Single' },
+  { key: 'married', label: 'Married' },
+  { key: 'divorced', label: 'Divorced' },
+  { key: 'widowed', label: 'Widowed' }
+];
+
+const employmentStatuses = [
+  { key: 'active', label: 'Active' },
+  { key: 'probation', label: 'Probation' },
+  { key: 'inactive', label: 'Inactive' },
+  { key: 'terminated', label: 'Terminated' }
+];
+
+const bloodGroups = [
+  { key: 'A+', label: 'A+' },
+  { key: 'A-', label: 'A-' },
+  { key: 'B+', label: 'B+' },
+  { key: 'B-', label: 'B-' },
+  { key: 'AB+', label: 'AB+' },
+  { key: 'AB-', label: 'AB-' },
+  { key: 'O+', label: 'O+' },
+  { key: 'O-', label: 'O-' }
+];
+
+const departmentPositionMap = {
+  hr: [
+    { key: 'hr_manager', label: 'HR Manager' },
+    { key: 'hr_executive', label: 'HR Executive' },
+    { key: 'recruiter', label: 'Recruiter' }
+  ],
+  finance: [
+    { key: 'finance_manager', label: 'Finance Manager' },
+    { key: 'accountant', label: 'Accountant' },
+    { key: 'auditor', label: 'Auditor' }
+  ],
+  it: [
+    { key: 'cto', label: 'CTO' },
+    { key: 'developer', label: 'Developer' },
+    { key: 'tester', label: 'Tester' },
+    { key: 'devops', label: 'DevOps Engineer' }
+  ],
+  operations: [
+    { key: 'operations_manager', label: 'Operations Manager' },
+    { key: 'team_lead', label: 'Team Lead' },
+    { key: 'executive', label: 'Operations Executive' }
+  ],
+  marketing: [
+    { key: 'marketing_manager', label: 'Marketing Manager' },
+    { key: 'seo_specialist', label: 'SEO Specialist' },
+    { key: 'content_writer', label: 'Content Writer' }
+  ]
+};
+
 const AddEmployee = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [employee, setEmployee] = useState({
+    // Personal Information
+    idNumber: '',
     firstName: '',
     lastName: '',
-    email: '',
-    position: '',
-    department: '',
-    phone: '',
+    gender: '',
+    dateOfBirth: '',
+    bloodGroup: '',
+    maritalStatus: '',
+    fatherOrHusbandName: '',
+    
+    // Employment Information
     employeeid: '',
+    department: '',
+    position: '',
+    branch: '',
+    dateOfJoining: '',
+    shift: '',
+    shiftTime: '',
+    employmentStatus: '',
+    enrollmentNumber: '',
+    qualifications: '',
+    previousExperience: '',
+    currentCompanyExperience: '',
+    casualLeave: 0,
+    
+    // Contact Information
+    email: '',
+    phone: '',
+    emergencyContact: '',
+    address: '',
+    
+    // Financial Information
+    aadharNumber: '',
+    panNumber: '',
+    uanPfNumber: '',
+    esiNumber: '',
+    accountNumber: '',
+    ifscCode: '',
+    salaryGross: 0,
+    salaryNet: 0,
+    
+    // References
+    referredBy: '',
+    reference1: '',
+    reference2: '',
+    
+    // System Access
     password: '',
-    joinDate: '',
-    role: ''
+    role: 'user'
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [error, setError] = useState(null);
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setEmployee((prev) => ({
+    setEmployee(prev => ({
       ...prev,
       [name]: value,
       ...(name === "department" ? { position: "" } : {})
     }));
   };
 
-  const availablePositions = departmentPositionMap[employee.department] || [];
+  const handleNumberChange = (e) => {
+    const { name, value } = e.target;
+    if (!isNaN(value)) {
+      setEmployee(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
+  };
 
-  // const handleImageChange = (e) => {
-  //   const file = e.target.files[0];
-  //   if (file) {
-  //     setEmployee(prev => ({
-  //       ...prev,
-  //       profileImage: file,
-  //       previewImage: URL.createObjectURL(file)
-  //     }));
-  //   }
-  // };
+  const availablePositions = departmentPositionMap[employee.department] || [];
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setError(null);
 
     try {
       const auth = getAuth();
@@ -68,194 +183,526 @@ const AddEmployee = () => {
       await addDoc(collection(db, "employees"), {
         ...employeeData,
         uid: user.uid,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
       });
 
       setSuccessMessage("Employee registered successfully");
-      setTimeout(() => setSuccessMessage(""), 3000);
-
-      // Reset form
-      setEmployee({
-        firstName: '',
-        lastName: '',
-        email: '',
-        
-        position: '',
-        department: '',
-        phone: '',
-        employeeid: '',
-        password: '',
-        joinDate: '',
-        role: ''
-      });
+      setTimeout(() => {
+        setSuccessMessage("");
+        navigate('/admin/emplist');
+      }, 2000);
 
     } catch (error) {
       console.error("Registration error:", error.message);
+      setError(error.message);
+      setTimeout(() => setError(null), 5000);
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="container-fluid bg-gray-100 px-0">
-      <div className="bg-white p-3 rounded">
-        <Link to="/admin/emplist" className="mb-6 text-indigo-600 text-decoration-none">
+    <div className="container-fluid px-4 py-6 mx-auto max-w-7xl">
+      <div className="bg-white p-4 sm:p-6 rounded-lg shadow">
+        <Link to="/admin/emplist" className="text-blue-600 hover:text-blue-800 mb-4 inline-block text-sm sm:text-base">
           ← Back to Employee List
         </Link>
-        <h2 className="text-2xl font-bold mb-6 mt-6">Add New Employee</h2>
+        
+        <h2 className="text-xl sm:text-2xl font-bold mb-6">Add New Employee</h2>
+        
         {successMessage && (
-          <div className="mb-4 p-3 bg-green-100 text-green-700 rounded">
+          <div className="mb-4 p-3 bg-green-100 text-green-700 rounded text-sm sm:text-base">
             {successMessage}
+          </div>
+        )}
+        
+        {error && (
+          <div className="mb-4 p-3 bg-red-100 text-red-700 rounded text-sm sm:text-base">
+            {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <input
-              name="firstName"
-              value={employee.firstName}
-              onChange={handleChange}
-              placeholder="First Name"
-              className="border border-gray-300 px-4 py-2 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-              required
-            />
-            <input
-              name="lastName"
-              value={employee.lastName}
-              onChange={handleChange}
-              placeholder="Last Name"
-              className="border border-gray-300 px-4 py-2 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-              required
-            />
-            <input
-              name="email"
-              value={employee.email}
-              onChange={handleChange}
-              type="email"
-              placeholder="Email"
-              className="border border-gray-300 px-4 py-2 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-              required
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <select
-              name="department"
-              value={employee.department}
-              onChange={handleChange}
-              className="border border-gray-300 px-4 py-2 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-              required
-            >
-              <option value="">Select Department</option>
-              {departments.map((dept) => (
-                <option key={dept.key} value={dept.key}>
-                  {dept.label}
-                </option>
-              ))}
-            </select>
-            <select
-              name="position"
-              value={employee.position}
-              onChange={handleChange}
-              className="border border-gray-300 px-4 py-2 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-              required
-            >
-              <option value="">Select Position</option>
-              {availablePositions.map((dept) => (
-                <option key={dept.key} value={dept.key}>
-                  {dept.label}
-                </option>
-              ))}
-            </select>
-            <input
-              type="number"
-              name="phone"
-              value={employee.phone}
-              onChange={handleChange}
-              placeholder="Phone Number"
-              className="border border-gray-300 px-4 py-2 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <input
-              name="employeeid"
-              value={employee.employeeid}
-              onChange={handleChange}
-              placeholder="Employee ID/Username"
-              className="border border-gray-300 px-4 py-2 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-              required
-            />
-            <div className="relative w-full">
-              <input
-                name="password"
-                value={employee.password}
-                onChange={handleChange}
-                placeholder="Password"
-                type={showPassword ? 'text' : 'password'}
-                className="w-full border border-gray-300 px-4 py-2 pr-10 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                required
-              />
-              <span
-                className="absolute inset-y-0 right-3 flex items-center cursor-pointer text-gray-500"
-                onClick={() => setShowPassword(!showPassword)}
-              >
-                <i className={`bx ${showPassword ? 'bx-hide' : 'bx-show'} text-xl`}></i>
-              </span>
-            </div>
-            <select
-              name="role"
-              value={employee.role}
-              onChange={handleChange}
-              className="border border-gray-300 px-4 py-2 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-              required
-            >
-              <option value="">Select Role</option>
-              <option value="user">User</option>
-              <option value="admin">Admin</option>
-            </select>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="flex flex-col">
-              <span className="text-gray-700">Joining Date</span>
-              <input
-                type="date"
-                name="joinDate"
-                value={employee.joinDate}
-                onChange={handleChange}
-                className="border border-gray-300 px-4 py-2 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-              />
-            </div>
-            {/* <div className="flex items-center space-x-6">
-              <label className="block">
-                <span className="text-gray-700">Profile Image</span>
+          {/* Personal Information Section */}
+          <div className="bg-gray-50 p-3 sm:p-4 rounded-lg">
+            <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 border-b pb-2">Personal Information</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">ID Number*</label>
                 <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                  className="block w-full cursor-pointer mt-1 text-sm text-gray-500 file:mr-4 file:py-2 file:px-4
-                      file:rounded-full file:border-0
-                      file:text-sm file:font-semibold
-                      file:bg-indigo-50 file:text-indigo-700
-                      hover:file:bg-indigo-100"
+                  name="idNumber"
+                  value={employee.idNumber}
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 px-2 sm:px-3 py-1 sm:py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm sm:text-base"
+                  required
                 />
-              </label>
-              {employee.previewImage && (
-                <img
-                  src={employee.previewImage}
-                  alt="Preview"
-                  className="w-[80px] h-[80px] ring-2 ring-indigo-500 object-cover"
+              </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">First Name*</label>
+                <input
+                  name="firstName"
+                  value={employee.firstName}
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 px-2 sm:px-3 py-1 sm:py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm sm:text-base"
+                  required
                 />
-              )}
-            </div> */}
+              </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Last Name*</label>
+                <input
+                  name="lastName"
+                  value={employee.lastName}
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 px-2 sm:px-3 py-1 sm:py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm sm:text-base"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Gender*</label>
+                <select
+                  name="gender"
+                  value={employee.gender}
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 px-2 sm:px-3 py-1 sm:py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm sm:text-base"
+                  required
+                >
+                  <option value="">Select Gender</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Date of Birth*</label>
+                <input
+                  type="date"
+                  name="dateOfBirth"
+                  value={employee.dateOfBirth}
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 px-2 sm:px-3 py-1 sm:py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm sm:text-base"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Blood Group</label>
+                <select
+                  name="bloodGroup"
+                  value={employee.bloodGroup}
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 px-2 sm:px-3 py-1 sm:py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm sm:text-base"
+                >
+                  <option value="">Select Blood Group</option>
+                  {bloodGroups.map(group => (
+                    <option key={group.key} value={group.key}>{group.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Marital Status</label>
+                <select
+                  name="maritalStatus"
+                  value={employee.maritalStatus}
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 px-2 sm:px-3 py-1 sm:py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm sm:text-base"
+                >
+                  <option value="">Select Marital Status</option>
+                  {maritalStatuses.map(status => (
+                    <option key={status.key} value={status.key}>{status.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Father/Husband Name</label>
+                <input
+                  name="fatherOrHusbandName"
+                  value={employee.fatherOrHusbandName}
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 px-2 sm:px-3 py-1 sm:py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm sm:text-base"
+                />
+              </div>
+            </div>
           </div>
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="w-[250px] h-[45px] bg-blue-500 text-white py-2 mt-4 rounded-lg font-semibold hover:bg-indigo-700 transition duration-200"
-          >
-            {isSubmitting ? 'Submitting...' : 'Add Employee'}
-          </button>
+
+          {/* Employment Information Section */}
+          <div className="bg-gray-50 p-3 sm:p-4 rounded-lg">
+            <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 border-b pb-2">Employment Information</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Employee ID*</label>
+                <input
+                  name="employeeid"
+                  value={employee.employeeid}
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 px-2 sm:px-3 py-1 sm:py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm sm:text-base"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Department*</label>
+                <select
+                  name="department"
+                  value={employee.department}
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 px-2 sm:px-3 py-1 sm:py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm sm:text-base"
+                  required
+                >
+                  <option value="">Select Department</option>
+                  {departments.map(dept => (
+                    <option key={dept.key} value={dept.key}>{dept.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Position*</label>
+                <select
+                  name="position"
+                  value={employee.position}
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 px-2 sm:px-3 py-1 sm:py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm sm:text-base"
+                  required
+                >
+                  <option value="">Select Position</option>
+                  {availablePositions.map(pos => (
+                    <option key={pos.key} value={pos.key}>{pos.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Branch*</label>
+                <select
+                  name="branch"
+                  value={employee.branch}
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 px-2 sm:px-3 py-1 sm:py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm sm:text-base"
+                  required
+                >
+                  <option value="">Select Branch</option>
+                  {branches.map(branch => (
+                    <option key={branch.key} value={branch.key}>{branch.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Date of Joining*</label>
+                <input
+                  type="date"
+                  name="dateOfJoining"
+                  value={employee.dateOfJoining}
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 px-2 sm:px-3 py-1 sm:py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm sm:text-base"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Shift</label>
+                <select
+                  name="shift"
+                  value={employee.shift}
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 px-2 sm:px-3 py-1 sm:py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm sm:text-base"
+                >
+                  <option value="">Select Shift</option>
+                  {shifts.map(shift => (
+                    <option key={shift.key} value={shift.key}>{shift.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Shift Time</label>
+                <input
+                  name="shiftTime"
+                  value={employee.shiftTime}
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 px-2 sm:px-3 py-1 sm:py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm sm:text-base"
+                />
+              </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Employment Status*</label>
+                <select
+                  name="employmentStatus"
+                  value={employee.employmentStatus}
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 px-2 sm:px-3 py-1 sm:py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm sm:text-base"
+                  required
+                >
+                  <option value="">Select Status</option>
+                  {employmentStatuses.map(status => (
+                    <option key={status.key} value={status.key}>{status.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Enrollment Number</label>
+                <input
+                  name="enrollmentNumber"
+                  value={employee.enrollmentNumber}
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 px-2 sm:px-3 py-1 sm:py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm sm:text-base"
+                />
+              </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Qualifications</label>
+                <input
+                  name="qualifications"
+                  value={employee.qualifications}
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 px-2 sm:px-3 py-1 sm:py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm sm:text-base"
+                />
+              </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Previous Experience (years)</label>
+                <input
+                  type="number"
+                  name="previousExperience"
+                  value={employee.previousExperience}
+                  onChange={handleNumberChange}
+                  className="w-full border border-gray-300 px-2 sm:px-3 py-1 sm:py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm sm:text-base"
+                />
+              </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Current Company Experience (years)</label>
+                <input
+                  type="number"
+                  name="currentCompanyExperience"
+                  value={employee.currentCompanyExperience}
+                  onChange={handleNumberChange}
+                  className="w-full border border-gray-300 px-2 sm:px-3 py-1 sm:py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm sm:text-base"
+                />
+              </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Casual Leave Balance</label>
+                <input
+                  type="number"
+                  name="casualLeave"
+                  value={employee.casualLeave}
+                  onChange={handleNumberChange}
+                  className="w-full border border-gray-300 px-2 sm:px-3 py-1 sm:py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm sm:text-base"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Contact Information Section */}
+          <div className="bg-gray-50 p-3 sm:p-4 rounded-lg">
+            <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 border-b pb-2">Contact Information</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Email*</label>
+                <input
+                  type="email"
+                  name="email"
+                  value={employee.email}
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 px-2 sm:px-3 py-1 sm:py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm sm:text-base"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Phone Number*</label>
+                <input
+                  type="tel"
+                  name="phone"
+                  value={employee.phone}
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 px-2 sm:px-3 py-1 sm:py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm sm:text-base"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Emergency Contact</label>
+                <input
+                  type="tel"
+                  name="emergencyContact"
+                  value={employee.emergencyContact}
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 px-2 sm:px-3 py-1 sm:py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm sm:text-base"
+                />
+              </div>
+              <div className="sm:col-span-2 lg:col-span-3">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Address</label>
+                <textarea
+                  name="address"
+                  value={employee.address}
+                  onChange={handleChange}
+                  rows={3}
+                  className="w-full border border-gray-300 px-2 sm:px-3 py-1 sm:py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm sm:text-base"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Financial Information Section */}
+          <div className="bg-gray-50 p-3 sm:p-4 rounded-lg">
+            <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 border-b pb-2">Financial Information</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Aadhar Number</label>
+                <input
+                  name="aadharNumber"
+                  value={employee.aadharNumber}
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 px-2 sm:px-3 py-1 sm:py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm sm:text-base"
+                />
+              </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">PAN Number</label>
+                <input
+                  name="panNumber"
+                  value={employee.panNumber}
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 px-2 sm:px-3 py-1 sm:py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm sm:text-base"
+                />
+              </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">UAN/PF Number</label>
+                <input
+                  name="uanPfNumber"
+                  value={employee.uanPfNumber}
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 px-2 sm:px-3 py-1 sm:py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm sm:text-base"
+                />
+              </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">ESI Number</label>
+                <input
+                  name="esiNumber"
+                  value={employee.esiNumber}
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 px-2 sm:px-3 py-1 sm:py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm sm:text-base"
+                />
+              </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Account Number</label>
+                <input
+                  name="accountNumber"
+                  value={employee.accountNumber}
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 px-2 sm:px-3 py-1 sm:py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm sm:text-base"
+                />
+              </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">IFSC Code</label>
+                <input
+                  name="ifscCode"
+                  value={employee.ifscCode}
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 px-2 sm:px-3 py-1 sm:py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm sm:text-base"
+                />
+              </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Gross Salary</label>
+                <input
+                  type="number"
+                  name="salaryGross"
+                  value={employee.salaryGross}
+                  onChange={handleNumberChange}
+                  className="w-full border border-gray-300 px-2 sm:px-3 py-1 sm:py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm sm:text-base"
+                />
+              </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Net Salary</label>
+                <input
+                  type="number"
+                  name="salaryNet"
+                  value={employee.salaryNet}
+                  onChange={handleNumberChange}
+                  className="w-full border border-gray-300 px-2 sm:px-3 py-1 sm:py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm sm:text-base"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* References Section */}
+          <div className="bg-gray-50 p-3 sm:p-4 rounded-lg">
+            <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 border-b pb-2">References</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Referred By</label>
+                <input
+                  name="referredBy"
+                  value={employee.referredBy}
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 px-2 sm:px-3 py-1 sm:py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm sm:text-base"
+                />
+              </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Reference 1 (College/Previous Company)</label>
+                <input
+                  name="reference1"
+                  value={employee.reference1}
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 px-2 sm:px-3 py-1 sm:py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm sm:text-base"
+                />
+              </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Reference 2 (Relatives)</label>
+                <input
+                  name="reference2"
+                  value={employee.reference2}
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 px-2 sm:px-3 py-1 sm:py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm sm:text-base"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* System Access Section */}
+          <div className="bg-gray-50 p-3 sm:p-4 rounded-lg">
+            <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 border-b pb-2">System Access</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+              <div className="relative">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Password*</label>
+                <input
+                  name="password"
+                  value={employee.password}
+                  onChange={handleChange}
+                  type={showPassword ? 'text' : 'password'}
+                  className="w-full border border-gray-300 px-2 sm:px-3 py-1 sm:py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm sm:text-base"
+                  required
+                />
+                <button
+                  type="button"
+                  className="absolute right-2 sm:right-3 top-7 sm:top-8 text-gray-500 text-xs sm:text-sm"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? 'Hide' : 'Show'}
+                </button>
+              </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Role*</label>
+                <select
+                  name="role"
+                  value={employee.role}
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 px-2 sm:px-3 py-1 sm:py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm sm:text-base"
+                  required
+                >
+                  <option value="user">User</option>
+                  <option value="admin">Admin</option>
+                  <option value="hr">HR</option>
+                  <option value="manager">Manager</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row justify-end gap-3 sm:gap-4">
+            <button
+              type="button"
+              onClick={() => navigate('/admin/emplist')}
+              className="px-4 sm:px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-sm sm:text-base"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="px-4 sm:px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm sm:text-base"
+            >
+              {isSubmitting ? 'Submitting...' : 'Add Employee'}
+            </button>
+          </div>
         </form>
       </div>
     </div>
