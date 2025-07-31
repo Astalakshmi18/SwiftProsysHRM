@@ -34,7 +34,7 @@ function App() {
             <Route path="emplist" element={<EmployeeList />} />
             <Route path="addemployee" element={<AddEmployee />} />
             <Route path="attendancereport" element={<AttendanceReport />} />
-            <Route path="/admin/editempmodal/" element={<editEmployeeModal />} />
+            <Route path="editempmodal/:employeeid" element={<EditEmployeeModal />} />
           </Route>
         </Route>
 
