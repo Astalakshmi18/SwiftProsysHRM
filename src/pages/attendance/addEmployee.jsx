@@ -23,9 +23,9 @@ const branches = [
 ];
 
 const shifts = [
-  { key: 'morning', label: 'Morning (9AM-6PM)' },
-  { key: 'evening', label: 'Evening (2PM-11PM)' },
-  { key: 'night', label: 'Night (10PM-7AM)' }
+  { key: 'morning', label: 'Shift I (6AM-2PM)' },
+  { key: 'evening', label: 'General (9PM-5:30PM)' },
+  { key: 'night', label: 'Shift II (2PM-9:45PM)' }
 ];
 
 const maritalStatuses = [
