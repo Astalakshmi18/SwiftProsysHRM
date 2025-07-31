@@ -47,13 +47,13 @@ const EditEmployeeModal = () => {
   const [error, setError] = useState(null);
 
   // Data for dropdowns
-  const departments = ['IT', 'HR', 'Finance', 'Operations', 'Marketing', 'Project Management'];
+  const departments = ['IT & System', 'HR/Admin', 'Finance', 'Vendor Manager', 'Quality Management', 'Project Management','Management'];
   const branches = ['Tindivanam', 'Chennai', 'Kanchipuram', 'Madurai'];
   const employmentStatuses = ['active', 'probation', 'inactive', 'terminated'];
   const genders = ['Male', 'Female', 'Other'];
   const bloodGroups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
   const maritalStatuses = ['Single', 'Married', 'Divorced', 'Widowed'];
-  const positions = ['Manager', 'Developer', 'Designer', 'Tester', 'Final_Checker', 'HR Executive'];
+  const positions = ["Chief Operating Officer", "General Manager", "Project Manager", "Assistant PM", "Project Leader", "Data Entry", "Quality Control", "Proof Reader", "Random QA", "HR Manager", "HR Executive", "Admin Assistant", "Trainer", "IT Manager", "IT Assistant Manager", "System Admin", "Software Engineer", "IT Support", "Quality Manager", "Quality Analyst", "Finance Manager", "Accountant", "Billing Executive", "Vendor Manager", "Vendor Assistant"];
   const shifts = ['Morning', 'Afternoon', 'Night', 'General'];
   const shiftTimes = ['9AM-5PM', '10AM-6PM', '2PM-10PM', '10PM-6AM'];
 
